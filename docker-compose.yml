@@ -1,0 +1,96 @@
+
+# docker-compose.yml — orquestador del entorno local
+#
+# CONCEPTO: este archivo reemplaza el ritual manual de cada desarrollador
+# ("en mi máquina funciona"). Antes: cada dev tenía sus propios comandos,
+# su propio orden de arranque, sus propias variables. Ahora: un solo comando.
+#
+# QUÉ HAY DEBAJO: Docker Engine gestiona una red virtual privada entre
+# los servicios definidos aquí. Es equivalente a una VPC en AWS, pero
+# en tu laptop. Los servicios se comunican por nombre (ej: http://backend:3000)
+# igual que los servicios en AWS se comunican por DNS interno.
+#
+# REEMPLAZA: el ciclo (cambio → zip → aws lambda update-function-code →
+# CloudWatch logs). En local ese ciclo pasa a ser (cambio → hot reload < 1s).
+
+services:
+
+  backend:
+    # CONCEPTO: este service es equivalente a tu Lambda en AWS.
+    # La diferencia es que aquí corre como un servidor HTTP de larga duración
+    # (Fastify escuchando en un puerto) en lugar de una función que se invoca
+    # y muere. El código es IDÉNTICO. Solo cambia el runtime que lo envuelve.
+    # En producción, lambda.ts hace de adaptador. Aquí, Fastify corre directo.
+
+    build:
+      context: ./backend
+      # CONCEPTO: Docker construye una imagen a partir de las instrucciones
+      # del Dockerfile. Es equivalente al proceso de empaquetado que hacías
+      # con Make antes de subir a Lambda. La diferencia: aquí el "paquete"
+      # es una imagen reproducible, no un zip que solo existe en tu máquina.
+      dockerfile: Dockerfile.dev
+      # Dockerfile.dev ≠ Dockerfile de producción.
+      # Dev: incluye herramientas de desarrollo, hot reload, source maps.
+      # Prod: imagen mínima, sin devDependencies, optimizada para Lambda.
+      # Esta separación es el principio de paridad dev/prod: misma base,
+      # distinto nivel de optimización.
+
+    ports:
+      - "3000:3000"
+      # CONCEPTO: mapea puerto del container al puerto de tu laptop.
+      # Formato: "HOST:CONTAINER"
+      # Sin esto, el container existe en su red privada y no es accesible
+      # desde tu navegador o desde la extensión de Chrome.
+      # En AWS, este mapeo lo hace API Gateway: recibe en 443 (HTTPS)
+      # y enruta al puerto interno de tu Lambda/container.
+
+    volumes:
+      - ./backend/src:/app/src
+      # CONCEPTO: monta tu carpeta local DENTRO del container en tiempo real.
+      # Es el puente que hace posible el hot reload.
+      # Sin esto: el container tiene una copia estática de tu código
+      # (la del momento del build). Con esto: ve tus cambios al instante.
+      # Equivalente mental: como tener tu editor y el servidor compartiendo
+      # el mismo sistema de archivos, aunque vivan en mundos separados.
+      - /app/node_modules
+      # CONCEPTO: este volume anónimo es un truco crítico.
+      # Le dice a Docker "para node_modules, usa lo que hay DENTRO
+      # del container, NO lo que hay en tu laptop".
+      # Sin esto: tu node_modules local (compilado para macOS/Linux/Windows)
+      # sobreescribiría el node_modules del container (compilado para Linux).
+      # Resultado sin este truco: errores de binarios incompatibles.
+
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      # CONCEPTO: variables de entorno inyectadas en el container.
+      # En Lambda, estas vendrían de: AWS Secrets Manager + variables
+      # de entorno configuradas en la función Lambda vía Terraform.
+      # En local, las inyecta Docker directamente desde aquí o desde .env.
+      # El código NO cambia. Solo cambia de dónde lee los valores.
+
+    env_file:
+      - .env
+      # CONCEPTO: carga variables adicionales desde tu .env local.
+      # Este archivo NUNCA va al repositorio (está en .gitignore).
+      # En producción esos secretos viven en AWS Secrets Manager.
+      # En local viven en .env. El secrets.service.ts abstrae esa diferencia.
+
+    restart: unless-stopped
+    # CONCEPTO: política de reinicio del container.
+    # Si el proceso crashea (error no capturado, OOM), Docker lo reinicia.
+    # Equivalente al comportamiento de Lambda: si una invocación falla,
+    # la siguiente invocación arranca en un contexto limpio.
+    # "unless-stopped" significa: reinicia siempre EXCEPTO si tú
+    # explícitamente hiciste docker compose stop.
+
+# CONCEPTO: red virtual privada entre todos los servicios de este archivo.
+# Docker la crea automáticamente. Los services se ven entre sí por nombre.
+# Cuando añadas más services (mock de YouTube API, base de datos),
+# se unirán a esta misma red sin configuración extra.
+# Equivalente AWS: una VPC con subnets privadas donde tus Lambdas
+# y RDS se comunican sin pasar por internet.
+networks:
+  default:
+    name: extensionsubscription-local
+
