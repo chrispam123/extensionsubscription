@@ -1,0 +1,19 @@
+# dependencias
+node_modules/
+
+# variables de entorno — NUNCA al repo
+.env
+
+# builds
+dist/
+.next/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+.terraform.lock.hcl
+
+# sistema
+.DS_Store
+*.log
