@@ -1,0 +1,12 @@
+{
+  "name": "extensionsubscription",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Monorepo root — gestiona hooks y scripts de desarrollo",
+  "scripts": {
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "husky": "^9.0.0"
+  }
+}

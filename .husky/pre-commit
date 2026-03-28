@@ -1,0 +1,13 @@
+# pre-commit hook — ejecuta antes de cada git commit
+#
+# CONCEPTO: Git ahora apunta a .husky/ como directorio de hooks
+# gracias a core.hooksPath. Husky v9 ya no copia hooks a .git/hooks/,
+# usa esta redirección directa. Resultado: los hooks están versionados
+# en .husky/ y cualquier clone del repo los tiene automáticamente
+# después de ejecutar npm install en la raíz.
+#
+# DEFENSA EN PROFUNDIDAD:
+# Este hook = primera línea (local, inmediato)
+# CI pipeline = segunda línea (remoto, en cada PR)
+
+cd backend && npx lint-staged
