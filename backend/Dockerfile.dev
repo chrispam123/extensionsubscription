@@ -1,0 +1,59 @@
+# Dockerfile.dev — imagen de desarrollo del backend
+#
+# CONCEPTO: un Dockerfile es la receta para construir un entorno reproducible.
+# Reemplaza el "primero instala Node, luego instala estas dependencias globales,
+# luego configura esto..." que vivía solo en la cabeza del dev más antiguo.
+# Aquí esa receta es código, versionada, igual para todos.
+#
+# POR QUÉ .dev: este Dockerfile es SOLO para desarrollo local.
+# Incluye herramientas (tsx) que no deben ir a producción.
+# El Dockerfile de producción usará un multi-stage build para generar
+# una imagen mínima que va dentro del Lambda. Lo haremos cuando lleguemos
+# al pipeline de CD.
+
+# CAPA BASE
+# CONCEPTO: partimos de una imagen oficial de Node en su versión LTS.
+# "alpine" significa imagen mínima basada en Alpine Linux (~5MB vs ~900MB).
+# En Lambda también usarías el runtime de Node 20. Misma base, mismo
+# comportamiento. Esto es paridad de entorno.
+FROM node:20-alpine
+
+# DIRECTORIO DE TRABAJO dentro del container
+# CONCEPTO: equivalente a hacer cd /app dentro del container.
+# Todos los comandos siguientes se ejecutan desde aquí.
+WORKDIR /app
+
+# COPIA SOLO los archivos de dependencias PRIMERO
+# CONCEPTO: esto es optimización de capas de Docker (layer caching).
+# Docker cachea cada instrucción. Si copias todo el código primero
+# y luego instalas dependencias, cualquier cambio en el código
+# invalida la caché del npm install (tarda minutos).
+# Al copiar solo package.json primero, el npm install solo se
+# repite cuando cambian las dependencias, no cuando cambias código.
+COPY package*.json ./
+
+# INSTALA dependencias
+# CONCEPTO: npm ci es más estricto que npm install.
+# Usa exactamente las versiones del package-lock.json.
+# Esto garantiza que todos (tú, CI, producción) usan las mismas versiones.
+# Es el equivalente a pip install -r requirements.txt --exact en Python.
+RUN npm ci
+
+# COPIA el resto del código
+# En desarrollo, este paso es casi irrelevante porque el volume
+# de docker-compose sobreescribe src/ con tu código local en tiempo real.
+# Pero es necesario para que la imagen sea válida si se usa sin Compose.
+COPY . .
+
+# EXPONE el puerto — documentación para Docker y para humanos
+# CONCEPTO: no abre el puerto (eso lo hace el "ports" en compose).
+# Solo declara la intención. Es como documentar qué puerto usa el servicio.
+EXPOSE 3000
+
+# COMANDO de arranque en desarrollo
+# CONCEPTO: tsx watch es el equivalente moderno de nodemon para TypeScript.
+# Observa cambios en los archivos .ts y reinicia el proceso automáticamente.
+# En producción este comando NO existe. Producción compila a JS primero
+# y ejecuta node directamente. Más rápido, sin overhead de transpilación.
+CMD ["npx", "tsx", "watch", "src/app.ts"]
+
