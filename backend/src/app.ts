@@ -1,5 +1,5 @@
 // app.ts — factory de la aplicación Fastify
-//
+// conceptos
 // CONCEPTO: este archivo NO sabe nada de Lambda ni de Docker.
 // Es Fastify puro. Esa ignorancia es deliberada: es el principio
 // de inversión de dependencias aplicado al runtime.
