@@ -1,0 +1,93 @@
+
+# ci-backend.yml — pipeline de Integración Continua para el dominio backend
+#
+# CONCEPTO: este workflow es la SEGUNDA línea de defensa después de los
+# pre-commit hooks de Husky. Un developer puede saltarse los hooks locales
+# con git commit --no-verify. El CI no se puede saltar.
+# Todo PR hacia develop o main que toque backend/ debe pasar por aquí.
+#
+# PRINCIPIO CI: el pipeline debe ser determinista. El mismo código
+# produce siempre el mismo resultado. Por eso usamos npm ci
+# (determinista) y no npm install (resuelve versiones en el momento).
+
+name: CI — backend
+
+# TRIGGER: cuándo se activa este workflow
+# CONCEPTO: paths es el mecanismo que diferencia CI por dominio.
+# Si el PR no toca ningún archivo de backend/, este workflow
+# directamente no corre. Ahorra minutos de CI y costos de GitHub Actions.
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci-backend.yml'
+      # El workflow se re-valida a sí mismo: si alguien modifica
+      # este archivo, el CI corre para verificar que el YAML es válido.
+
+# CONCEPTO: permissions mínimos necesarios.
+# Principio de least privilege aplicado al CI.
+# El pipeline solo necesita leer el código, no escribir ni deployar.
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Type check and lint
+    # CONCEPTO: ubuntu-latest es la VM limpia donde corre el job.
+    # Cada ejecución empieza desde cero: sin caché, sin estado previo.
+    # Es el equivalente a "en mi máquina funciona" pero para todos
+    # por igual. Si pasa aquí, pasa en cualquier máquina.
+    runs-on: ubuntu-latest
+
+    steps:
+      # PASO 1: checkout del código
+      # CONCEPTO: la VM no tiene tu código. Este step lo descarga
+      # desde GitHub al filesystem de la VM. Sin esto, no hay nada que ejecutar.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # PASO 2: configurar Node.js
+      # CONCEPTO: la VM tiene Node instalado pero no necesariamente
+      # la versión que necesitas. Este step instala la versión exacta.
+      # node-version debe coincidir con la imagen de Docker local (node:20)
+      # para garantizar paridad de entorno entre local y CI.
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          # CONCEPTO: cache de dependencias de npm.
+          # La primera ejecución descarga todo desde npm registry (~30s).
+          # Las siguientes usan la caché si package-lock.json no cambió (~3s).
+          # GitHub Actions cachea automáticamente basándose en el lockfile.
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      # PASO 3: instalar dependencias
+      # CONCEPTO: npm ci usa exactamente package-lock.json.
+      # Es determinista: mismas versiones siempre, en CI y en local.
+      # Reemplaza el npm install que usarías manualmente.
+      - name: Install dependencies
+        working-directory: backend
+        run: npm ci
+
+      # PASO 4: verificación de tipos TypeScript
+      # CONCEPTO: tsc --noEmit verifica que el código TypeScript es
+        # válido sin generar archivos de salida. Es una validación pura.
+      # Detecta errores que ESLint no puede ver: tipos incorrectos,
+      # imports que no existen, interfaces no implementadas.
+      # En tu flujo anterior esto no existía: los errores de tipos
+      # aparecían en runtime dentro de Lambda.
+      - name: Type check
+        working-directory: backend
+        run: npm run typecheck
+
+      # PASO 5: linting
+      # CONCEPTO: ESLint verifica calidad y consistencia del código.
+      # --max-warnings 0 significa que cualquier warning es un error.
+      # En CI no hay término medio: o el código cumple los estándares o no.
+      - name: Lint
+        working-directory: backend
+        run: npm run lint
