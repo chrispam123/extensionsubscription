@@ -1,0 +1,48 @@
+# .github/workflows/ci-extension.yml
+name: CI — extension
+
+# PRINCIPIO DE EFICIENCIA: Solo disparamos este flujo si hay cambios en la extensión.
+on:
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'extension/**'
+      - '.github/workflows/ci-extension.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  # Este nombre "quality" es el que GitHub usará para el check
+  quality:
+    name: Type check and lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          # Caching para que el CI sea rápido (usa el lockfile de la extensión)
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - name: Install dependencies
+        working-directory: extension
+        # PRINCIPIO DETERMINISTA: npm ci borra node_modules e instala 
+        # exactamente lo que dice el lockfile.
+        run: npm ci
+
+      - name: Type check
+        working-directory: extension
+        run: npm run typecheck
+
+      - name: Lint
+        working-directory: extension
+        # --max-warnings 0 asegura que no pasen ni siquiera los avisos menores
+        run: npm run lint
