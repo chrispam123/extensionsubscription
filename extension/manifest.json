@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube Subscription Manager",
+  "version": "0.1.0",
+  "description": "Exporta e importa tus suscripciones de YouTube",
+
+  "permissions": [
+    "storage",
+    "identity"
+  ],
+
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://*.googleapis.com/*"
+  ],
+
+  "background": {
+    "service_worker": "src/background/index.ts",
+    "type": "module"
+  },
+
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "YouTube Subscription Manager"
+  },
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
