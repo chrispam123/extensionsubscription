@@ -54,10 +54,10 @@ module "youtube_backend_lambda" {
   function_name = "youtube-subs-backend-prod"
 
   # Apuntamos a la carpeta dist que acabamos de generar
-  source_dir = "../backend/dist"
+  source_dir = "../backend"
 
   # El handler en Fastify suele ser el nombre del archivo.nombre_del_handler
-  handler = "lambda.handler"
+  handler = "dist/lambda.handler"
 
   environment_variables = {
     NODE_ENV = "production"
@@ -66,4 +66,15 @@ module "youtube_backend_lambda" {
     GOOGLE_CLIENT_SECRET = "placeholder-secret"
 
   }
+}
+module "api_gateway" {
+  source               = "./modules/api-gateway"
+  api_name             = "youtube-subs-api-prod"
+  lambda_function_arn  = module.youtube_backend_lambda.function_arn
+  lambda_function_name = module.youtube_backend_lambda.function_name
+}
+
+# Output final para ver la URL en la consola
+output "backend_url" {
+  value = module.api_gateway.api_endpoint
 }

@@ -55,5 +55,5 @@ EXPOSE 3000
 # Observa cambios en los archivos .ts y reinicia el proceso automáticamente.
 # En producción este comando NO existe. Producción compila a JS primero
 # y ejecuta node directamente. Más rápido, sin overhead de transpilación.
-CMD ["npx", "tsx", "watch", "src/app.ts"]
+CMD ["npx", "tsx", "watch", "src/local.ts"]
 

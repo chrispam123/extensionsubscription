@@ -2,11 +2,19 @@
   "name": "extensionsubscription",
   "version": "0.1.0",
   "private": true,
-  "description": "Monorepo root — gestiona hooks y scripts de desarrollo",
   "scripts": {
     "prepare": "husky"
   },
   "devDependencies": {
-    "husky": "^9.0.0"
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0"
+  },
+  "lint-staged": {
+    "backend/src/**/*.ts": [
+      "npm --prefix backend run lint"
+    ],
+    "extension/src/**/*.{ts,tsx}": [
+      "npm --prefix extension run lint"
+    ]
   }
 }
