@@ -1,6 +1,7 @@
 {
   "name": "extensionsubscription-extension",
   "version": "0.1.0",
+  "type": "module",
   "private": true,
   "description": "Chrome extension — cliente de la aplicación",
   "scripts": {
