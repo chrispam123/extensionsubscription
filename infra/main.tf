@@ -47,3 +47,23 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
     }
   }
 }
+# infra/main.tf (continuación)
+
+module "youtube_backend_lambda" {
+  source        = "./modules/lambda"
+  function_name = "youtube-subs-backend-prod"
+
+  # Apuntamos a la carpeta dist que acabamos de generar
+  source_dir = "../backend/dist"
+
+  # El handler en Fastify suele ser el nombre del archivo.nombre_del_handler
+  handler = "lambda.handler"
+
+  environment_variables = {
+    NODE_ENV = "production"
+    # Por ahora usamos placeholders, luego usaremos Secrets Manager
+    GOOGLE_CLIENT_ID     = "placeholder-id"
+    GOOGLE_CLIENT_SECRET = "placeholder-secret"
+
+  }
+}
