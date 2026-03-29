@@ -54,10 +54,10 @@ module "youtube_backend_lambda" {
   function_name = "youtube-subs-backend-prod"
 
   # Apuntamos a la carpeta dist que acabamos de generar
-  source_dir    = "../backend" 
+  source_dir = "../backend"
 
   # El handler en Fastify suele ser el nombre del archivo.nombre_del_handler
-    handler       = "dist/lambda.handler"
+  handler = "dist/lambda.handler"
 
   environment_variables = {
     NODE_ENV = "production"
