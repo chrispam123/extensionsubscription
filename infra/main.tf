@@ -48,23 +48,22 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
   }
 }
 # infra/main.tf (continuación)
+module "secrets" {
+  source = "./modules/secrets"
+}
 
 module "youtube_backend_lambda" {
   source        = "./modules/lambda"
   function_name = "youtube-subs-backend-prod"
-
-  # Apuntamos a la carpeta dist que acabamos de generar
-  source_dir = "../backend"
-
-  # El handler en Fastify suele ser el nombre del archivo.nombre_del_handler
-  handler = "dist/lambda.handler"
+  source_dir    = "../backend"
+ # 2. IMPORTANTE: Indicamos que el archivo está dentro de dist/
+  handler       = "dist/lambda.handler" 
+  # PASAMOS EL ARN AQUÍ
+  google_secret_arn = module.secrets.secret_arn
 
   environment_variables = {
-    NODE_ENV = "production"
-    # Por ahora usamos placeholders, luego usaremos Secrets Manager
-    GOOGLE_CLIENT_ID     = "placeholder-id"
-    GOOGLE_CLIENT_SECRET = "placeholder-secret"
-
+    NODE_ENV          = "production"
+    GOOGLE_SECRET_ARN = module.secrets.secret_arn
   }
 }
 module "api_gateway" {
@@ -73,7 +72,6 @@ module "api_gateway" {
   lambda_function_arn  = module.youtube_backend_lambda.function_arn
   lambda_function_name = module.youtube_backend_lambda.function_name
 }
-
 # Output final para ver la URL en la consola
 output "backend_url" {
   value = module.api_gateway.api_endpoint

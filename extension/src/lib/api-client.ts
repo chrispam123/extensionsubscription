@@ -14,7 +14,8 @@
 // BACKEND_URL en local:  http://localhost:3000
 // BACKEND_URL en prod:   https://tu-api-gateway.amazonaws.com
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL ?? 'http://localhost:3000'
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3000';
+
 
 // Tipo base para todas las respuestas del API
 interface ApiResponse<T> {
