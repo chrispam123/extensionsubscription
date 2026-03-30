@@ -56,8 +56,8 @@ module "youtube_backend_lambda" {
   source        = "./modules/lambda"
   function_name = "youtube-subs-backend-prod"
   source_dir    = "../backend"
- # 2. IMPORTANTE: Indicamos que el archivo está dentro de dist/
-  handler       = "dist/lambda.handler" 
+  # 2. IMPORTANTE: Indicamos que el archivo está dentro de dist/
+  handler = "dist/lambda.handler"
   # PASAMOS EL ARN AQUÍ
   google_secret_arn = module.secrets.secret_arn
 
