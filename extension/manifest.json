@@ -6,12 +6,13 @@
 
   "permissions": [
     "storage",
-    "identity"
+    "identity",
+    "scripting",
+    "tabs"
   ],
 
   "host_permissions": [
-    "http://localhost:3000/*",
-    "https://*.googleapis.com/*"
+    "https://*.execute-api.eu-west-1.amazonaws.com/*"
   ],
 
   "background": {
@@ -23,7 +24,7 @@
     "default_popup": "src/popup/index.html",
     "default_title": "YouTube Subscription Manager"
   },
-
+ 
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",

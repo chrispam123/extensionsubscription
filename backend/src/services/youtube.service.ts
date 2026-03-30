@@ -1,16 +1,16 @@
-// youtube.service.ts — wrapper sobre YouTube Data API v3
+// backend/src/services/youtube.service.ts
 //
-// CONCEPTO: único punto del sistema que habla con YouTube.
-// Centralizar el acceso facilita el mock en tests y la gestión de quota.
+// CONCEPTO: Wrapper sobre YouTube Data API v3.
+// Este servicio centraliza la comunicación con Google.
+// Implementa Throttling (límite de 50) para proteger la cuota y el timeout de Lambda.
 
 import { z } from 'zod'
 import type { Channel, ExportResponse, ImportResponse } from '../schemas/subscription.schema.js'
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
-// CONCEPTO: schemas Zod para validar respuestas de YouTube API.
-// La API externa puede cambiar o devolver datos inesperados.
-// Validar en el boundary protege el resto del sistema.
+// ── SCHEMAS DE VALIDACIÓN ──────────────────────────────────────────────────
+// Validamos lo que responde Google para evitar errores de "undefined"
 const YouTubeSubscriptionItemSchema = z.object({
   snippet: z.object({
     title: z.string(),
@@ -33,6 +33,10 @@ const YouTubeSubscriptionsResponseSchema = z.object({
 export class YouTubeService {
   constructor(private readonly accessToken: string) {}
 
+  /**
+   * EXPORTAR: Lista todas las suscripciones del usuario.
+   * Coste: 1 unidad por página de 50.
+   */
   async listSubscriptions(): Promise<ExportResponse> {
     const channels: Channel[] = []
     let pageToken: string | undefined
@@ -51,10 +55,11 @@ export class YouTubeService {
       )
 
       if (!response.ok) {
+        const err = await response.json();
+        console.error("[YouTubeService] Error en exportación:", JSON.stringify(err));
         throw new Error(`YouTube API error: ${response.statusText}`)
       }
 
-      // Zod valida la respuesta de YouTube antes de procesarla
       const data = YouTubeSubscriptionsResponseSchema.parse(await response.json())
 
       for (const item of data.items) {
@@ -75,11 +80,22 @@ export class YouTubeService {
     }
   }
 
+  /**
+   * IMPORTAR: Suscribe al usuario a una lista de canales.
+   * Coste: 50 unidades por canal.
+   * Límite: 50 canales por ejecución para evitar Timeout y agotar cuota.
+   */
   async importSubscriptions(channels: Channel[]): Promise<ImportResponse> {
-    let imported = 0
-    let failed = 0
+    // LIMITACIÓN: Solo procesamos los primeros 50 canales
+    const LIMIT = 50;
+    const channelsToProcess = channels.slice(0, LIMIT);
+    
+    let imported = 0;
+    let failed = 0;
 
-    for (const channel of channels) {
+    console.log(`[YouTubeService] Iniciando importación de ${channelsToProcess.length} canales (Límite aplicado: ${LIMIT})`);
+
+    for (const channel of channelsToProcess) {
       try {
         const response = await fetch(
           `${YOUTUBE_API_BASE}/subscriptions?part=snippet`,
@@ -101,19 +117,28 @@ export class YouTubeService {
         )
 
         if (response.ok) {
-          imported++
+          imported++;
         } else {
-          failed++
+          const errorData = await response.json();
+          // LOG CRÍTICO para CloudWatch: Aquí veremos si es Quota, Duplicado o Permisos
+          console.error(`[YouTubeService] Fallo al suscribir a ${channel.channelTitle} (${channel.channelId}):`, JSON.stringify(errorData));
+          failed++;
         }
-      } catch {
-        failed++
+      } catch (err) {
+        console.error(`[YouTubeService] Error de red en canal ${channel.channelId}:`, err);
+        failed++;
       }
     }
 
-    return { imported, failed, total: channels.length }
+    console.log(`[YouTubeService] Ritual completado. Éxitos: ${imported}, Fallos: ${failed}`);
+
+    return { 
+      imported, 
+      failed, 
+      total: channelsToProcess.length 
+    };
   }
 }
 
 export const createYouTubeService = (accessToken: string): YouTubeService =>
   new YouTubeService(accessToken)
-
