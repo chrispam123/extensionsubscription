@@ -27,6 +27,10 @@ interface ExportResult {
   exportedAt: string
   filename: string
 }
+interface ExtensionMessage {
+  type: string;
+  payload?: unknown;
+}
 
 interface ImportState {
   granted: number
@@ -34,6 +38,7 @@ interface ImportState {
   filename: string
   total: number
 }
+
 
 // ── ESTILOS GLOBALES inyectados una vez al montar el componente
 const GLOBAL_STYLES = `
@@ -84,10 +89,11 @@ export default function App():React.ReactElement {
   }, [])
 // 2. NUEVO useEffect (Escucha el mensaje de éxito del background)
   useEffect(() => {
-    const handleMessage = (message: any) => {
+    // 2. Aplicamos el tipo ExtensionMessage en lugar de any
+    const handleMessage = (message: ExtensionMessage) => {
       if (message.type === 'AUTH_COMPLETE') {
         console.log("Ritual detectado desde el fondo. Cambiando al Altar...");
-        setScreen('home'); // Esto cambia la pantalla automáticamente
+        setScreen('home');
       }
     };
     chrome.runtime.onMessage.addListener(handleMessage);
