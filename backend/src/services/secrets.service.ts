@@ -57,6 +57,7 @@ class AwsSecretsService implements SecretsService {
       if (!value) throw new Error(`Key ${key} not found in Secrets Manager`);
       return value;
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Error fetching secret from AWS:", error);
       throw error;
     }
