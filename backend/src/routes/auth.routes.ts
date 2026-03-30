@@ -45,9 +45,10 @@ export const authRoutes = async (app: FastifyInstance): Promise<void> => {
       }
 
       const oauthService = createOAuthService()
-      const result = await oauthService.exchangeCode(code)
-
-      return reply.send(result)
+      const result = await oauthService.exchangeCode(code);
+      const redirectUrl = `https://www.youtube.com/?auth_success=true#token=${result.sessionToken}`;
+      app.log.info("[Auth] Ritual completado. Redirigiendo a YouTube...");
+      return reply.redirect(redirectUrl);
     }
   )
 }

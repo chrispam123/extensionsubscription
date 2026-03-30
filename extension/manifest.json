@@ -2,32 +2,31 @@
   "manifest_version": 3,
   "name": "YouTube Subscription Manager",
   "version": "0.1.0",
-  "description": "Exporta e importa tus suscripciones de YouTube",
-
+  "description": "Ritual de exportación e importación de suscripciones.",
   "permissions": [
     "storage",
     "identity",
     "scripting",
-    "tabs"
+    "tabs",
+    "sidePanel"
   ],
-
   "host_permissions": [
-    "https://*.execute-api.eu-west-1.amazonaws.com/*"
+    "https://*.execute-api.eu-west-1.amazonaws.com/*",
+    "https://*.youtube.com/*"
   ],
-
   "background": {
     "service_worker": "src/background/index.ts",
     "type": "module"
   },
-
-  "action": {
-    "default_popup": "src/popup/index.html",
-    "default_title": "YouTube Subscription Manager"
-  },
- 
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
+  },
+  "side_panel": {
+    "default_path": "src/popup/index.html"
+  },
+  "action": {
+    "default_title": "Abrir Altar de Suscripciones"
   }
 }

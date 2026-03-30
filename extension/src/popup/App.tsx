@@ -27,6 +27,10 @@ interface ExportResult {
   exportedAt: string
   filename: string
 }
+interface ExtensionMessage {
+  type: string;
+  payload?: unknown;
+}
 
 interface ImportState {
   granted: number
@@ -35,6 +39,7 @@ interface ImportState {
   total: number
 }
 
+
 // ── ESTILOS GLOBALES inyectados una vez al montar el componente
 const GLOBAL_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=MedievalSharp&family=Newsreader:ital,wght@0,400;0,600;1,400;1,600&family=Space+Grotesk:wght@300;400;500&family=Inter:wght@300;400;500&display=swap');
@@ -42,8 +47,8 @@ const GLOBAL_STYLES = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    width: 400px;
-    min-height: 600px;
+    width: 100%;
+    min-height: 100vh;
     background: #0e0e0e;
     overflow-x: hidden;
   }
@@ -82,6 +87,19 @@ export default function App():React.ReactElement {
     document.head.appendChild(style)
     styleInjected.current = true
   }, [])
+// 2. NUEVO useEffect (Escucha el mensaje de éxito del background)
+  useEffect(() => {
+    // 2. Aplicamos el tipo ExtensionMessage en lugar de any
+    const handleMessage = (message: ExtensionMessage) => {
+      if (message.type === 'AUTH_COMPLETE') {
+        console.log("Ritual detectado desde el fondo. Cambiando al Altar...");
+        setScreen('home');
+      }
+    };
+    chrome.runtime.onMessage.addListener(handleMessage);
+// Limpieza: eliminamos el escucha cuando el componente se desmonte
+    return () => chrome.runtime.onMessage.removeListener(handleMessage);
+  }, []);
 
   // Verifica sesión activa al abrir el popup
   useEffect(() => {
@@ -101,7 +119,6 @@ export default function App():React.ReactElement {
     }
     await chrome.tabs.create({ url: result.data.authUrl })
     setIsLoading(false)
-    setScreen('home')
   }
 
   const handleExport = async (): Promise<void> => {
@@ -162,7 +179,7 @@ export default function App():React.ReactElement {
   }
 
   return (
-    <div style={{ width: 400, minHeight: 600, background: '#0e0e0e', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ width: '100%', minHeight: '100vh', background: '#0e0e0e', display: 'flex', flexDirection: 'column' }}>
       {screen === 'initiation' && (
         <ScreenInitiation
           isLoading={isLoading}
@@ -217,7 +234,7 @@ function ScreenInitiation({ isLoading, error, onAuthenticate }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: '1.2rem' }}>
           <div style={{ width: 40, height: 1, background: '#fff', opacity: 0.25 }} />
           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.22em', color: '#474747', textTransform: 'uppercase' }}>
-            Initiation
+            ⋆♱⋆♱⋆♱⋆♱⋆♱⋆♱⋆♱⋆♱⋆♱⋆♱⋆♱⋆♱
           </span>
         </div>
 
@@ -229,15 +246,15 @@ function ScreenInitiation({ isLoading, error, onAuthenticate }: {
         {/* Copy Newsreader italic */}
         <p style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic', fontSize: 15, color: '#5a5a5a', lineHeight: 1.75, flex: 1 }}>
           Surrender to the digital void.<br />
-          Your journey into the atmospheric<br />
-          abyss begins with a single connection.
+          extension para exportar e importar<br />
+          suscripciones de Youtube.
         </p>
 
         {/* Security badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '1.5rem', marginBottom: 0, paddingBottom: '2rem' }}>
           <ShieldIcon size={20} color="#8B0000" />
           <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.18em', color: '#474747', textTransform: 'uppercase' }}>
-            Vault Security Protocol Active
+             Datos en reposo cifrados
           </span>
         </div>
       </div>
@@ -331,14 +348,14 @@ function ScreenHome({ cathedralImg, isLoading, error, onExport, onImport, onTerm
         <div style={{ position: 'absolute', top: '2rem', left: '1.5rem', width: 40, height: 40, borderTop: '1px solid rgba(255,255,255,0.2)', borderLeft: '1px solid rgba(255,255,255,0.2)' }} />
 
         <h2 style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic', fontSize: 36, color: '#fff', lineHeight: 1.15, textAlign: 'center', marginBottom: '0.6rem', marginTop: '1rem' }}>
-          Seleccione su protocolo<br />de transmisión
+          Permitir el acceso<br />a Suscripciones Yotube.
         </h2>
 
         {/* Separador */}
         <div style={{ width: 60, height: 1, background: 'rgba(255,255,255,0.15)', margin: '1rem auto' }} />
 
-        <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.18em', color: '#474747', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2.5rem' }}>
-          Digital Relic V1.0 // Subscription Engine
+        <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.18em', color: '#FFFFFF', textTransform: 'uppercase', textAlign: 'center', marginBottom: '2.5rem' }}>
+          Selecciona la cuenta y ya puedes exportar e importar tus suscripciones
         </p>
 
         {/* Botones de acción */}
@@ -474,8 +491,7 @@ function ScreenExportResult({ result, onBack }: {
   )
 }
 
-// ══════════════════════════════════════════════════════════════════
-// PANTALLA 4 — IMPORT PROGRESS
+// PANTALLA 4 — IMPORT PROGRESS (CORREGIDA)
 // ══════════════════════════════════════════════════════════════════
 function ScreenImportProgress({ state, isLoading, cathedralImg, onFinish, onAbort }: {
   state: ImportState
@@ -486,11 +502,6 @@ function ScreenImportProgress({ state, isLoading, cathedralImg, onFinish, onAbor
 }): React.ReactElement {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: 600, position: 'relative', background: '#0e0e0e' }}>
-
-      {/* ── IMAGEN DE FONDO CATEDRAL ─────────────────────────────────────
-          Misma imagen que pantalla 2. Ajusta opacity si necesitas
-          más o menos contraste con el contenido encima.
-          ─────────────────────────────────────────────────────────────── */}
       <img
         src={cathedralImg}
         alt=""
@@ -500,37 +511,29 @@ function ScreenImportProgress({ state, isLoading, cathedralImg, onFinish, onAbor
           opacity: 0.18, pointerEvents: 'none', userSelect: 'none'
         }}
       />
-
-      {/* Top bar */}
       <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.2rem 1.5rem', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <span onClick={onAbort} style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#474747', cursor: 'pointer' }}>✕</span>
         <span style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic', fontSize: 15, color: '#fff' }}>The Nocturne</span>
         <span style={{ fontFamily: "'Inter', sans-serif", fontSize: 14, color: '#474747' }}>+</span>
       </div>
-
       <div style={{ position: 'relative', zIndex: 1, flex: 1, padding: '2rem', display: 'flex', flexDirection: 'column' }}>
-
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.2em', color: '#474747', textTransform: 'uppercase', marginBottom: '0.6rem' }}>
           Protocolo de Alma
         </div>
         <h2 style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic', fontSize: 32, color: '#fff', lineHeight: 1.1, marginBottom: '2.5rem' }}>
           Importando<br />Transmisiones
         </h2>
-
-        {/* Hourglass con cross motifs */}
         <div style={{ width: 80, height: 80, border: '1px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 2rem', position: 'relative' }}>
           <span style={{ position: 'absolute', top: -8, left: -8, color: 'rgba(255,255,255,0.25)', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>+</span>
           <span style={{ position: 'absolute', bottom: -8, right: -8, color: 'rgba(255,255,255,0.25)', fontSize: 12, fontFamily: 'Inter, sans-serif' }}>+</span>
           <span style={{
-            fontSize: 28, color: '#fff', opacity: isLoading ? undefined : 0.9,
+            fontSize: 28, color: '#fff',
             animation: isLoading ? 'pulse 1.5s ease-in-out infinite' : 'none',
             fontFamily: 'Inter, sans-serif'
           }}>
             ⧗
           </span>
         </div>
-
-        {/* Contador */}
         <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.18em', color: '#474747', textTransform: 'uppercase', textAlign: 'center', marginBottom: '0.4rem' }}>
           Estado del Vínculo
         </div>
@@ -542,16 +545,6 @@ function ScreenImportProgress({ state, isLoading, cathedralImg, onFinish, onAbor
             Concedidos
           </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, justifyContent: 'center', marginBottom: '2rem' }}>
-          <span style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic', fontSize: 24, color: '#2d6a2d' }}>
-            {state.rejected}
-          </span>
-          <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.16em', color: '#474747', textTransform: 'uppercase' }}>
-            Rechazados
-          </span>
-        </div>
-
-        {/* Meta fuente */}
         <div style={{ borderLeft: '2px solid rgba(255,255,255,0.12)', padding: '1rem 1.2rem', background: 'rgba(28,27,27,0.85)', marginBottom: '0.9rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
             <span style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 9, letterSpacing: '0.16em', color: '#474747', textTransform: 'uppercase' }}>
@@ -561,29 +554,28 @@ function ScreenImportProgress({ state, isLoading, cathedralImg, onFinish, onAbor
               {state.filename}
             </span>
           </div>
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', marginBottom: 8 }} />
-          <p style={{ fontFamily: "'Newsreader', serif", fontStyle: 'italic', fontSize: 12, color: '#474747', lineHeight: 1.65 }}>
-            {isLoading
-              ? 'Extrayendo hilos de comunicación de la red profana. La integración está casi completa.'
-              : 'Transmisión completada. El vínculo ha sido establecido.'
-            }
-          </p>
         </div>
       </div>
 
       <div style={{ position: 'relative', zIndex: 1, padding: '0 2rem 2rem', display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
-        <NocturneButton
-          onClick={onFinish}
-          label={isLoading ? 'Procesando...' : 'Finalizar Integración'}
-          variant="primary"
-          disabled={isLoading}
-        />
-        <NocturneButton onClick={onAbort} label="Abortar Secuencia" variant="ghost" />
+        {isLoading ? (
+          <NocturneButton
+            label="Procesando..."
+            variant="primary"
+            disabled={true}
+            onClick={() => {}}
+          />
+        ) : (
+          <NocturneButton
+            label="Ritual Completado - Volver"
+            variant="primary"
+            onClick={onFinish} 
+          />
+        )}
+        {isLoading && <NocturneButton onClick={onAbort} label="Abortar Secuencia" variant="ghost" />}
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1 }}>
-        <BottomBar active="ritual" onTerminate={() => null} />
-      </div>
+      <BottomBar active="ritual" onTerminate={() => {}} />
     </div>
   )
 }
@@ -606,17 +598,17 @@ function NocturneButton({ onClick, label, variant, disabled }: {
   variant: 'primary' | 'ghost'
   disabled?: boolean
 }): React.ReactElement {
-  const base: React.CSSProperties = {
-    width: '100%', border: 'none', borderRadius: 0,
-    padding: '1rem', cursor: disabled ? 'not-allowed' : 'pointer',
+  const styles: React.CSSProperties = {
+    width: '100%', 
+    border: variant === 'ghost' ? '1px solid rgba(255,255,255,0.15)' : 'none',
+    background: variant === 'primary' ? '#fff' : 'transparent',
+    color: variant === 'primary' ? '#0e0e0e' : '#fff',
+    padding: '1.1rem', 
+    cursor: disabled ? 'not-allowed' : 'pointer', // CORREGIDO
     fontFamily: "'Space Grotesk', sans-serif", fontSize: 11,
     letterSpacing: '0.14em', textTransform: 'uppercase', fontWeight: 500,
-    opacity: disabled ? 0.5 : 1, transition: 'background 0.15s, color 0.15s'
+    opacity: disabled ? 0.5 : 1
   }
-  const styles: React.CSSProperties = variant === 'primary'
-    ? { ...base, background: '#fff', color: '#0e0e0e' }
-    : { ...base, background: 'transparent', color: '#fff', border: '1px solid rgba(255,255,255,0.15)' }
-
   return <button onClick={onClick} disabled={disabled} style={styles}>{label}</button>
 }
 
@@ -625,9 +617,9 @@ function BottomBar({ active, onTerminate }: {
   onTerminate: () => void
 }): React.ReactElement {
   const items = [
-    { key: 'history', label: 'History', icon: '↺' },
-    { key: 'ritual',  label: 'Ritual',  icon: '🛡' },
-    { key: 'config',  label: 'Config',  icon: '⚙' },
+    { key: 'history', label: 'History', icon: '𐃯' },
+    { key: 'ritual',  label: 'Ritual',  icon: '🩸' },
+    { key: 'config',  label: 'Inicio',  icon: '🗡' },
   ] as const
 
   return (
