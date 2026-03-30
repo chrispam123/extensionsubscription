@@ -1,4 +1,4 @@
-# extensionsubscription 1 y 2
+# extensionsubscription 1 y 2 y 3
 
 Chrome extension para exportar e importar suscripciones de YouTube.
 
