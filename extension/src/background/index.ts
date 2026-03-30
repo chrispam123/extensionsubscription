@@ -9,7 +9,6 @@
 // Cuando Google redirige al usuario después de autenticarse,
 // este service worker intercepta la URL, extrae el código,
 // llama al backend para intercambiarlo por tokens, y los guarda.
-import { apiClient } from '../lib/api-client.js'
 
 // Tipamos los argumentos para cumplir con el modo estricto
 

@@ -56,6 +56,7 @@ export class YouTubeService {
 
       if (!response.ok) {
         const err = await response.json();
+        // eslint-disable-next-line no-console
         console.error("[YouTubeService] Error en exportación:", JSON.stringify(err));
         throw new Error(`YouTube API error: ${response.statusText}`)
       }
@@ -92,7 +93,7 @@ export class YouTubeService {
     
     let imported = 0;
     let failed = 0;
-
+    // eslint-disable-next-line no-console
     console.log(`[YouTubeService] Iniciando importación de ${channelsToProcess.length} canales (Límite aplicado: ${LIMIT})`);
 
     for (const channel of channelsToProcess) {
@@ -120,16 +121,18 @@ export class YouTubeService {
           imported++;
         } else {
           const errorData = await response.json();
+          // eslint-disable-next-line no-console
           // LOG CRÍTICO para CloudWatch: Aquí veremos si es Quota, Duplicado o Permisos
           console.error(`[YouTubeService] Fallo al suscribir a ${channel.channelTitle} (${channel.channelId}):`, JSON.stringify(errorData));
           failed++;
         }
       } catch (err) {
+        // eslint-disable-next-line no-console
         console.error(`[YouTubeService] Error de red en canal ${channel.channelId}:`, err);
         failed++;
       }
     }
-
+    // eslint-disable-next-line no-console
     console.log(`[YouTubeService] Ritual completado. Éxitos: ${imported}, Fallos: ${failed}`);
 
     return { 
