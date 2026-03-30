@@ -1,0 +1,16 @@
+# pre-commit hook — ejecuta antes de cada git commit
+#
+# CONCEPTO: este script corre en tu máquina local antes de que
+# el commit se materialice. Es la primera línea de defensa.
+# Si falla, el commit no se crea y ves el error inmediatamente.
+# El CI es la segunda línea de defensa en GitHub.
+# Juntos forman defensa en profundidad.
+#
+# IMPORTANTE: este archivo está versionado en .husky/ (no en .git/hooks/)
+# gracias a Husky. Todo el equipo tiene los mismos hooks automáticamente
+# al hacer npm install. Sin Husky, cada dev tendría que configurar
+# sus hooks manualmente — eso no es reproducible.
+
+cd backend
+npx lint-staged
+
