@@ -1,31 +1,30 @@
 {
   "name": "extensionsubscription-extension",
   "version": "0.1.0",
-  "type": "module",
   "private": true,
-  "description": "Chrome extension — cliente de la aplicación",
+  "type": "module",
   "scripts": {
     "dev": "vite build --watch",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/**/*.ts src/**/*.tsx --max-warnings 0"
+    "lint": "eslint src --max-warnings 0"
   },
   "devDependencies": {
     "@crxjs/vite-plugin": "^2.0.0-beta.23",
     "@eslint/js": "^10.0.1",
     "@types/chrome": "^0.0.260",
-    "@types/react": "^19.2.14",
-    "@types/react-dom": "^19.2.3",
-    "eslint": "10.0.1",
-    "eslint-plugin-react": "^7.37.5",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^10.0.1",
+    "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "globals": "^17.4.0",
     "typescript": "^5.4.2",
-    "typescript-eslint": "^8.57.2",
+    "typescript-eslint": "^8.24.1",
     "vite": "^5.2.0"
   },
   "dependencies": {
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
   }
 }

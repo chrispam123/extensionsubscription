@@ -15,6 +15,7 @@
 // REEMPLAZA: el acceso directo a process.env disperso por todo el código.
 // Si mañana cambias de Secrets Manager a Parameter Store o Vault,
 // solo cambias este archivo. Nada más.
+import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
 
 export interface SecretsService {
   getSecret(key: string): Promise<string>
@@ -38,12 +39,28 @@ class LocalSecretsService implements SecretsService {
 }
 
 class AwsSecretsService implements SecretsService {
-  // TODO: implementar cuando lleguemos al pipeline de CD
-  // Usará @aws-sdk/client-secrets-manager
-  // El ARN del secret vendrá de una variable de entorno
-  // que Terraform inyecta en la función Lambda
+  private client = new SecretsManagerClient({ region: "eu-west-1" });
+
   async getSecret(key: string): Promise<string> {
-    throw new Error(`AWS Secrets Service not yet implemented for key: ${key}`)
+    const secretArn = process.env.GOOGLE_SECRET_ARN;
+    if (!secretArn) throw new Error("GOOGLE_SECRET_ARN not set in environment");
+
+    try {
+      const response = await this.client.send(
+        new GetSecretValueCommand({ SecretId: secretArn })
+      );
+      
+      // Los secretos en AWS se guardan como un JSON string
+      const secrets = JSON.parse(response.SecretString || "{}");
+      const value = secrets[key];
+
+      if (!value) throw new Error(`Key ${key} not found in Secrets Manager`);
+      return value;
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Error fetching secret from AWS:", error);
+      throw error;
+    }
   }
 }
 

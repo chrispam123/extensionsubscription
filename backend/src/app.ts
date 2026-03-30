@@ -1,5 +1,6 @@
 // backend/src/app.ts
 import Fastify from 'fastify'
+import cors from '@fastify/cors' // 1. Importar el plugin
 import { healthRoutes } from './routes/health.routes.js'
 import { authRoutes } from './routes/auth.routes.js'
 import { subscriptionRoutes } from './routes/subscriptions.routes.js'
@@ -10,6 +11,13 @@ const app = Fastify({
       ? { target: 'pino-pretty' }
       : undefined
   }
+})
+
+// 2. Registrar CORS antes que las rutas
+await app.register(cors, {
+  origin: "*", // En producción podrías poner "chrome-extension://tu-id-aqui"
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 })
 
 await app.register(healthRoutes)

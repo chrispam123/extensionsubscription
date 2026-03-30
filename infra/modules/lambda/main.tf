@@ -27,7 +27,28 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+# Permiso para leer el secreto de Google
+resource "aws_iam_policy" "lambda_secrets" {
+  name        = "${var.function_name}-secrets-policy"
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = "secretsmanager:GetSecretValue"
+        Effect   = "Allow"
+        # CAMBIO AQUÍ: Usamos var en lugar de module
+        Resource = var.google_secret_arn 
+      }
+    ]
+  })
+}
 
+# No olvides el attachment para que el rol de la lambda tenga esta política
+resource "aws_iam_role_policy_attachment" "lambda_secrets_attach" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = aws_iam_policy.lambda_secrets.arn
+}
 # 4. La Función Lambda
 resource "aws_lambda_function" "this" {
   filename         = data.archive_file.lambda_zip.output_path
@@ -35,6 +56,7 @@ resource "aws_lambda_function" "this" {
   role             = aws_iam_role.lambda_exec.arn
   handler          = var.handler
   runtime          = var.runtime
+  timeout          = var.timeout
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 
   environment {
