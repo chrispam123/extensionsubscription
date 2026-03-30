@@ -1,0 +1,55 @@
+name: CD — production
+
+on:
+  push:
+    branches:
+      - main # Solo se dispara cuando el código llega a main siempre
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    # Vinculamos el job al entorno que creamos en el Paso 1
+    environment: production 
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # 1. PREPARAR EL ARTEFACTO (BACKEND)
+      # Terraform necesita que el código esté compilado antes de empaquetarlo
+      - name: Build Backend
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+          npm prune --production
+
+      # 2. CONFIGURAR TERRAFORM
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.0"
+
+      # 3. CONFIGURAR CREDENCIALES DE AWS
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      # 4. DESPLIEGUE (EL RITUAL FINAL)
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: infra
+        # auto-approve es vital aquí porque no hay terminal interactiva
+        run: terraform apply -auto-approve
