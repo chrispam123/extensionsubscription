@@ -122,7 +122,6 @@ export class YouTubeService {
         } else {
           const errorData = await response.json();
           // eslint-disable-next-line no-console
-          // LOG CRÍTICO para CloudWatch: Aquí veremos si es Quota, Duplicado o Permisos
           console.error(`[YouTubeService] Fallo al suscribir a ${channel.channelTitle} (${channel.channelId}):`, JSON.stringify(errorData));
           failed++;
         }
