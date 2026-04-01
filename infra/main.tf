@@ -22,6 +22,20 @@ provider "aws" {
   region = "eu-west-1"
 }
 
+module "dynamodb" {
+  source = "./modules/dynamodb"
+
+  users_table_name        = "youtube-subs-app-users-prod"
+  jobs_table_name         = "youtube-subs-app-jobs-prod"
+  job_payloads_table_name = "youtube-subs-app-job-payloads-prod"
+  quota_ledger_table_name = "youtube-subs-app-quota-ledger-prod"
+
+  tags = {
+    project = "youtube-subs"
+    env     = "prod"
+  }
+}
+
 # --- RECURSOS DEL BUCKET (Ya deberían estar creados) ---
 
 resource "aws_s3_bucket" "terraform_state" {
@@ -55,7 +69,7 @@ module "secrets" {
 module "youtube_backend_lambda" {
   source        = "./modules/lambda"
   function_name = "youtube-subs-backend-prod"
-  source_dir    = "../backend"
+  source_dir    = "../backend/build_lambda"
   # 2. IMPORTANTE: Indicamos que el archivo está dentro de dist/
   handler = "dist/lambda.handler"
   # PASAMOS EL ARN AQUÍ

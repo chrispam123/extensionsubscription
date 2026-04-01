@@ -3,7 +3,7 @@
 resource "aws_apigatewayv2_api" "this" {
   name          = var.api_name
   protocol_type = "HTTP"
-  
+
   # CORS: Permitimos que nuestra extensión hable con el API
   cors_configuration {
     allow_origins = ["*"] # En producción podrías restringirlo al ID de la extensión
@@ -21,9 +21,9 @@ resource "aws_apigatewayv2_stage" "this" {
 
 # 3. Integración con la Lambda
 resource "aws_apigatewayv2_integration" "this" {
-  api_id           = aws_apigatewayv2_api.this.id
-  integration_type = "AWS_PROXY"
-  integration_uri  = var.lambda_function_arn
+  api_id                 = aws_apigatewayv2_api.this.id
+  integration_type       = "AWS_PROXY"
+  integration_uri        = var.lambda_function_arn
   payload_format_version = "2.0"
 }
 

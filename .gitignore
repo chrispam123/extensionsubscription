@@ -3,7 +3,7 @@ node_modules/
 
 # variables de entorno — NUNCA al repo
 .env
-
+backend/build_lambda/
 # builds
 dist/
 .next/
@@ -13,7 +13,15 @@ dist/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
-
+**/.terraform/
+*.tfstate.*
+*.tfplan
+tfplan
+tfplan.*
 # sistema
 .DS_Store
 *.log
+
+**/payload.zip
+infra/modules/lambda/payload.zip
+infra/tfplan*

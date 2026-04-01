@@ -29,16 +29,16 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
 }
 # Permiso para leer el secreto de Google
 resource "aws_iam_policy" "lambda_secrets" {
-  name        = "${var.function_name}-secrets-policy"
-  
+  name = "${var.function_name}-secrets-policy"
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
-        Action   = "secretsmanager:GetSecretValue"
-        Effect   = "Allow"
+        Action = "secretsmanager:GetSecretValue"
+        Effect = "Allow"
         # CAMBIO AQUÍ: Usamos var en lugar de module
-        Resource = var.google_secret_arn 
+        Resource = var.google_secret_arn
       }
     ]
   })
