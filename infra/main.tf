@@ -78,7 +78,15 @@ module "youtube_backend_lambda" {
   environment_variables = {
     NODE_ENV          = "production"
     GOOGLE_SECRET_ARN = module.secrets.secret_arn
+
   }
+
+  dynamodb_table_arns = [
+    module.dynamodb.users_table_arn,
+    module.dynamodb.jobs_table_arn,
+    module.dynamodb.job_items_table_arn,
+    module.dynamodb.quota_ledger_table_arn,
+  ]
 }
 module "api_gateway" {
   source               = "./modules/api-gateway"
