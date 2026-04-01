@@ -37,3 +37,8 @@ variable "timeout" {
   type        = number
   default     = 15 # Aumentamos a 15 segundos
 }
+variable "dynamodb_table_arns" {
+  description = "ARNs de las tablas DynamoDB a las que la Lambda puede acceder"
+  type        = list(string)
+  default     = []
+}
