@@ -13,7 +13,14 @@ dist/
 *.tfstate
 *.tfstate.backup
 .terraform.lock.hcl
-
+**/.terraform/
+*.tfstate.*
+*.tfplan
+tfplan
+tfplan.*
 # sistema
 .DS_Store
 *.log
+
+**/payload.zip
+

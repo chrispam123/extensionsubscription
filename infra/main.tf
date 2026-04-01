@@ -22,6 +22,20 @@ provider "aws" {
   region = "eu-west-1"
 }
 
+module "dynamodb" {
+  source = "./modules/dynamodb"
+
+  users_table_name        = "youtube-subs-app-users-prod"
+  jobs_table_name         = "youtube-subs-app-jobs-prod"
+  job_payloads_table_name = "youtube-subs-app-job-payloads-prod"
+  quota_ledger_table_name = "youtube-subs-app-quota-ledger-prod"
+
+  tags = {
+    project = "youtube-subs"
+    env     = "prod"
+  }
+}
+
 # --- RECURSOS DEL BUCKET (Ya deberían estar creados) ---
 
 resource "aws_s3_bucket" "terraform_state" {
