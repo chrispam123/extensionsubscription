@@ -9,7 +9,10 @@
     "build": "tsc --project tsconfig.json",
     "start": "node dist/local.js",
     "lint": "eslint src --max-warnings 0",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "clean:lambda": "rm -rf build_lambda",
+    "package:lambda": "npm run clean:lambda && mkdir -p build_lambda && cp -R dist build_lambda/ && cp -R node_modules build_lambda/ && cp package.json build_lambda/",
+    "build:lambda": "npm run build && npm run package:lambda"
   },
   "dependencies": {
     "@aws-sdk/client-secrets-manager": "^3.750.0",
@@ -20,7 +23,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@types/node": "^22.13.5",
+    "@types/node": "^22.19.15",
     "eslint": "^10.0.1",
     "pino-pretty": "^13.0.0",
     "tsx": "^4.19.3",
