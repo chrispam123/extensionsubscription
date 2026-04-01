@@ -27,7 +27,7 @@ module "dynamodb" {
 
   users_table_name        = "youtube-subs-app-users-prod"
   jobs_table_name         = "youtube-subs-app-jobs-prod"
-  job_payloads_table_name = "youtube-subs-app-job-payloads-prod"
+  job_payloads_table_name = "youtube-subs-app-jobitems-prod"
   quota_ledger_table_name = "youtube-subs-app-quota-ledger-prod"
 
   tags = {
