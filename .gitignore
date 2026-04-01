@@ -3,7 +3,7 @@ node_modules/
 
 # variables de entorno — NUNCA al repo
 .env
-
+backend/build_lambda/
 # builds
 dist/
 .next/
@@ -23,4 +23,5 @@ tfplan.*
 *.log
 
 **/payload.zip
-
+infra/modules/lambda/payload.zip
+infra/tfplan*
