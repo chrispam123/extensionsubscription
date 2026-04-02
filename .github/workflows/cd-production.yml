@@ -20,15 +20,19 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
       # 1. PREPARAR EL ARTEFACTO (BACKEND)
-      # Terraform necesita que el código esté compilado antes de empaquetarlo
-      - name: Build Backend
+      # Terraform necesita que el código esté compilado y empaquetado en
+      # backend/build_lambda antes de ejecutar terraform plan/apply.
+      - name: Build Backend Lambda
         working-directory: backend
         run: |
           npm ci
           npm run build
           npm prune --production
+          npm run package:lambda
 
       # 2. CONFIGURAR TERRAFORM
       - name: Setup Terraform
