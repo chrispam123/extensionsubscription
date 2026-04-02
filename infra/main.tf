@@ -22,6 +22,20 @@ provider "aws" {
   region = "eu-west-1"
 }
 
+module "dynamodb" {
+  source = "./modules/dynamodb"
+
+  users_table_name        = "youtube-subs-app-users-prod"
+  jobs_table_name         = "youtube-subs-app-jobs-prod"
+  job_payloads_table_name = "youtube-subs-app-jobitems-prod"
+  quota_ledger_table_name = "youtube-subs-app-quota-ledger-prod"
+
+  tags = {
+    project = "youtube-subs"
+    env     = "prod"
+  }
+}
+
 # --- RECURSOS DEL BUCKET (Ya deberían estar creados) ---
 
 resource "aws_s3_bucket" "terraform_state" {
@@ -55,16 +69,32 @@ module "secrets" {
 module "youtube_backend_lambda" {
   source        = "./modules/lambda"
   function_name = "youtube-subs-backend-prod"
-  source_dir    = "../backend"
+  source_dir    = "../backend/build_lambda"
   # 2. IMPORTANTE: Indicamos que el archivo está dentro de dist/
   handler = "dist/lambda.handler"
   # PASAMOS EL ARN AQUÍ
   google_secret_arn = module.secrets.secret_arn
 
   environment_variables = {
-    NODE_ENV          = "production"
-    GOOGLE_SECRET_ARN = module.secrets.secret_arn
+    NODE_ENV                = "production"
+    GOOGLE_SECRET_ARN       = module.secrets.secret_arn
+    USERS_TABLE_NAME        = module.dynamodb.users_table_name
+    JOBS_TABLE_NAME         = module.dynamodb.jobs_table_name
+    JOBITEMS_TABLE_NAME     = module.dynamodb.job_items_table_name
+    QUOTA_LEDGER_TABLE_NAME = module.dynamodb.quota_ledger_table_name
+
+    GLOBAL_QUOTA_LIMIT_UNITS         = tostring(10000)
+    GLOBAL_QUOTA_SAFETY_MARGIN_UNITS = tostring(500)
+    USER_DAILY_SOFT_CAP_UNITS        = tostring(1000)
+
   }
+
+  dynamodb_table_arns = [
+    module.dynamodb.users_table_arn,
+    module.dynamodb.jobs_table_arn,
+    module.dynamodb.job_items_table_arn,
+    module.dynamodb.quota_ledger_table_arn,
+  ]
 }
 module "api_gateway" {
   source               = "./modules/api-gateway"
