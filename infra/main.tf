@@ -76,8 +76,16 @@ module "youtube_backend_lambda" {
   google_secret_arn = module.secrets.secret_arn
 
   environment_variables = {
-    NODE_ENV          = "production"
-    GOOGLE_SECRET_ARN = module.secrets.secret_arn
+    NODE_ENV                = "production"
+    GOOGLE_SECRET_ARN       = module.secrets.secret_arn
+    USERS_TABLE_NAME        = module.dynamodb.users_table_name
+    JOBS_TABLE_NAME         = module.dynamodb.jobs_table_name
+    JOBITEMS_TABLE_NAME     = module.dynamodb.job_items_table_name
+    QUOTA_LEDGER_TABLE_NAME = module.dynamodb.quota_ledger_table_name
+
+    GLOBAL_QUOTA_LIMIT_UNITS         = tostring(10000)
+    GLOBAL_QUOTA_SAFETY_MARGIN_UNITS = tostring(500)
+    USER_DAILY_SOFT_CAP_UNITS        = tostring(1000)
 
   }
 
