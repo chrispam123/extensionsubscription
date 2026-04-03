@@ -1,16 +1,17 @@
 name: CD — production
 
 on:
-  push:
-    branches:
-      - main # Solo se dispara cuando el código llega a main siempre
+  workflow_dispatch: {}
+
+concurrency:
+  group: production
+  cancel-in-progress: false
 
 jobs:
   deploy:
     name: Deploy to AWS
     runs-on: ubuntu-latest
-    # Vinculamos el job al entorno que creamos en el Paso 1
-    environment: production 
+    environment: production
 
     steps:
       - name: Checkout code
@@ -23,9 +24,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: backend/package-lock.json
 
-      # 1. PREPARAR EL ARTEFACTO (BACKEND)
-      # Terraform necesita que el código esté compilado y empaquetado en
-      # backend/build_lambda antes de ejecutar terraform plan/apply.
       - name: Build Backend Lambda
         working-directory: backend
         run: |
@@ -34,13 +32,11 @@ jobs:
           npm prune --production
           npm run package:lambda
 
-      # 2. CONFIGURAR TERRAFORM
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: "1.11.0"
 
-      # 3. CONFIGURAR CREDENCIALES DE AWS
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -48,12 +44,25 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
 
-      # 4. DESPLIEGUE (EL RITUAL FINAL)
       - name: Terraform Init
         working-directory: infra
         run: terraform init
 
       - name: Terraform Apply
         working-directory: infra
-        # auto-approve es vital aquí porque no hay terminal interactiva
         run: terraform apply -auto-approve
+
+      - name: Smoke test (health)
+        run: |
+          set -euo pipefail
+          URL="https://a1kawqa198.execute-api.eu-west-1.amazonaws.com/health"
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            echo "Health check attempt $i..."
+            if curl -fsS --max-time 10 "$URL" > /dev/null; then
+              echo "OK"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Health endpoint did not become healthy in time: $URL"
+          exit 1
