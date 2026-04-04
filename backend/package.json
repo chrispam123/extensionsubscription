@@ -15,7 +15,9 @@
     "build:lambda": "npm run build && npm run package:lambda"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1023.0",
     "@aws-sdk/client-secrets-manager": "^3.750.0",
+    "@aws-sdk/lib-dynamodb": "^3.1023.0",
     "@fastify/aws-lambda": "^5.0.0",
     "@fastify/cors": "^10.0.2",
     "@fastify/helmet": "^13.0.1",
