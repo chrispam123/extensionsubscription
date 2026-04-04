@@ -96,6 +96,13 @@ resource "aws_lambda_function" "this" {
   environment {
     variables = var.environment_variables
   }
+
+  lifecycle {
+    ignore_changes = [
+      filename,
+      source_code_hash,
+    ]
+  }
 }
 
 # 5. Grupo de Logs (Para que no se queden ahí para siempre)

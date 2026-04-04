@@ -1,7 +1,7 @@
 # infra/modules/secrets/main.tf
 
 resource "aws_secretsmanager_secret" "google_creds" {
-  name        = "youtube-subs-google-creds-prod"
+  name        = "youtube-subs-google-creds-${var.env}"
   description = "Credenciales de Google OAuth2 para la extensión"
 }
 
