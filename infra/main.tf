@@ -10,11 +10,7 @@ terraform {
 
   # EL BLOQUE BACKEND VA AQUÍ DENTRO
   backend "s3" {
-    bucket       = "nocturne-tfstate-chrispam-2026"
-    key          = "global/s3/terraform.tfstate"
-    region       = "eu-west-1"
-    encrypt      = true
-    use_lockfile = true
+
   }
 }
 
@@ -25,14 +21,14 @@ provider "aws" {
 module "dynamodb" {
   source = "./modules/dynamodb"
 
-  users_table_name        = "youtube-subs-app-users-prod"
-  jobs_table_name         = "youtube-subs-app-jobs-prod"
-  job_payloads_table_name = "youtube-subs-app-jobitems-prod"
-  quota_ledger_table_name = "youtube-subs-app-quota-ledger-prod"
+  users_table_name        = "youtube-subs-app-users-${var.env}"
+  jobs_table_name         = "youtube-subs-app-jobs-${var.env}"
+  job_payloads_table_name = "youtube-subs-app-jobitems-${var.env}"
+  quota_ledger_table_name = "youtube-subs-app-quota-ledger-${var.env}"
 
   tags = {
     project = "youtube-subs"
-    env     = "prod"
+    env     = var.env
   }
 }
 
@@ -64,11 +60,12 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
 # infra/main.tf (continuación)
 module "secrets" {
   source = "./modules/secrets"
+  env    = var.env
 }
 
 module "youtube_backend_lambda" {
   source        = "./modules/lambda"
-  function_name = "youtube-subs-backend-prod"
+  function_name = "youtube-subs-backend-${var.env}"
   source_dir    = "../backend/build_lambda"
   # 2. IMPORTANTE: Indicamos que el archivo está dentro de dist/
   handler = "dist/lambda.handler"
@@ -76,7 +73,7 @@ module "youtube_backend_lambda" {
   google_secret_arn = module.secrets.secret_arn
 
   environment_variables = {
-    NODE_ENV                = "production"
+    NODE_ENV                = var.env == "prod" ? "production" : "development"
     GOOGLE_SECRET_ARN       = module.secrets.secret_arn
     USERS_TABLE_NAME        = module.dynamodb.users_table_name
     JOBS_TABLE_NAME         = module.dynamodb.jobs_table_name
@@ -98,7 +95,7 @@ module "youtube_backend_lambda" {
 }
 module "api_gateway" {
   source               = "./modules/api-gateway"
-  api_name             = "youtube-subs-api-prod"
+  api_name             = "youtube-subs-api-${var.env}"
   lambda_function_arn  = module.youtube_backend_lambda.function_arn
   lambda_function_name = module.youtube_backend_lambda.function_name
 }
