@@ -1,27 +1,14 @@
-// backend/src/services/youtube.service.ts
-//
-// CONCEPTO: Wrapper sobre YouTube Data API v3.
-// Este servicio centraliza la comunicación con Google.
-// Implementa Throttling (límite de 50) para proteger la cuota y el timeout de Lambda.
-
 import { z } from 'zod'
 import type { Channel, ExportResponse, ImportResponse } from '../schemas/subscription.schema.js'
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3'
 
-// ── SCHEMAS DE VALIDACIÓN ──────────────────────────────────────────────────
-// Validamos lo que responde Google para evitar errores de "undefined"
+// --- SCHEMAS (Sin cambios, están perfectos) ---
 const YouTubeSubscriptionItemSchema = z.object({
   snippet: z.object({
     title: z.string(),
-    resourceId: z.object({
-      channelId: z.string()
-    }),
-    thumbnails: z.object({
-      default: z.object({
-        url: z.string()
-      }).optional()
-    }).optional()
+    resourceId: z.object({ channelId: z.string() }),
+    thumbnails: z.object({ default: z.object({ url: z.string() }).optional() }).optional()
   })
 })
 
@@ -30,13 +17,32 @@ const YouTubeSubscriptionsResponseSchema = z.object({
   nextPageToken: z.string().optional()
 })
 
+const YouTubeMyChannelResponseSchema = z.object({
+  items: z.array(z.object({ id: z.string() })).default([])
+})
+
 export class YouTubeService {
   constructor(private readonly accessToken: string) {}
 
-  /**
-   * EXPORTAR: Lista todas las suscripciones del usuario.
-   * Coste: 1 unidad por página de 50.
-   */
+  async getMyChannelId(): Promise<string> {
+    const params = new URLSearchParams({ part: 'id', mine: 'true', maxResults: '1' })
+    const response = await fetch(`${YOUTUBE_API_BASE}/channels?${params.toString()}`, {
+      headers: { Authorization: `Bearer ${this.accessToken}` }
+    })
+     // 1. Extraemos el JSON primero para tenerlo disponible
+    const rawData = await response.json();
+    // 2. Si hay error, mostramos el JSON real que envió Google
+    if (!response.ok) {
+       throw new Error(`YouTube API error (${response.status}): ${JSON.stringify(rawData)}`);
+    }
+    
+    // 3. Si no hay error, validamos la estructura
+    const data = YouTubeMyChannelResponseSchema.parse(rawData);
+    const id = data.items[0]?.id;
+    if (!id) throw new Error('Unable to determine authenticated user channel id');
+    return id
+  }
+
   async listSubscriptions(): Promise<ExportResponse> {
     const channels: Channel[] = []
     let pageToken: string | undefined
@@ -49,19 +55,14 @@ export class YouTubeService {
         ...(pageToken ? { pageToken } : {})
       })
 
-      const response = await fetch(
-        `${YOUTUBE_API_BASE}/subscriptions?${params.toString()}`,
-        { headers: { Authorization: `Bearer ${this.accessToken}` } }
-      )
+      const response = await fetch(`${YOUTUBE_API_BASE}/subscriptions?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${this.accessToken}` }
+      })
 
-      if (!response.ok) {
-        const err = await response.json();
-        // eslint-disable-next-line no-console
-        console.error("[YouTubeService] Error en exportación:", JSON.stringify(err));
-        throw new Error(`YouTube API error: ${response.statusText}`)
-      }
+      const rawData = await response.json() // Guardamos una vez para evitar agotar el stream
+      if (!response.ok) throw new Error(`YouTube API error: ${JSON.stringify(rawData)}`)
 
-      const data = YouTubeSubscriptionsResponseSchema.parse(await response.json())
+      const data = YouTubeSubscriptionsResponseSchema.parse(rawData)
 
       for (const item of data.items) {
         channels.push({
@@ -70,77 +71,55 @@ export class YouTubeService {
           thumbnailUrl: item.snippet.thumbnails?.default?.url
         })
       }
-
       pageToken = data.nextPageToken
     } while (pageToken)
 
-    return {
-      exportedAt: new Date().toISOString(),
-      totalChannels: channels.length,
-      channels
-    }
+    return { exportedAt: new Date().toISOString(), totalChannels: channels.length, channels }
   }
 
-  /**
-   * IMPORTAR: Suscribe al usuario a una lista de canales.
-   * Coste: 50 unidades por canal.
-   * Límite: 50 canales por ejecución para evitar Timeout y agotar cuota.
-   */
   async importSubscriptions(channels: Channel[]): Promise<ImportResponse> {
-    // LIMITACIÓN: Solo procesamos los primeros 50 canales
     const LIMIT = 50;
     const channelsToProcess = channels.slice(0, LIMIT);
-    
     let imported = 0;
     let failed = 0;
-    // eslint-disable-next-line no-console
-    console.log(`[YouTubeService] Iniciando importación de ${channelsToProcess.length} canales (Límite aplicado: ${LIMIT})`);
 
     for (const channel of channelsToProcess) {
       try {
-        const response = await fetch(
-          `${YOUTUBE_API_BASE}/subscriptions?part=snippet`,
-          {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${this.accessToken}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              snippet: {
-                resourceId: {
-                  kind: 'youtube#channel',
-                  channelId: channel.channelId
-                }
-              }
-            })
-          }
-        )
+        const response = await fetch(`${YOUTUBE_API_BASE}/subscriptions?part=snippet`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            snippet: {
+              resourceId: { kind: 'youtube#channel', channelId: channel.channelId }
+            }
+          })
+        })
 
         if (response.ok) {
           imported++;
         } else {
           const errorData = await response.json();
-          // eslint-disable-next-line no-console
-          console.error(`[YouTubeService] Fallo al suscribir a ${channel.channelTitle} (${channel.channelId}):`, JSON.stringify(errorData));
+          
+          // CAMBIO APLICADO: Solo loguea en desarrollo y evita el warning del linter
+          if (process.env.NODE_ENV === 'development') {
+            // eslint-disable-next-line no-console
+            console.error(`[YouTubeService] Fallo en ${channel.channelTitle}:`, JSON.stringify(errorData))
+          }
+          
           failed++;
         }
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error(`[YouTubeService] Error de red en canal ${channel.channelId}:`, err);
+      } catch { 
+        // CAMBIO EXTRA: Usamos _err para que el linter no se queje de variable no usada
         failed++;
       }
     }
-    // eslint-disable-next-line no-console
-    console.log(`[YouTubeService] Ritual completado. Éxitos: ${imported}, Fallos: ${failed}`);
 
-    return { 
-      imported, 
-      failed, 
-      total: channelsToProcess.length 
-    };
+    return { imported, failed, total: channelsToProcess.length };
   }
-}
+} 
 
 export const createYouTubeService = (accessToken: string): YouTubeService =>
   new YouTubeService(accessToken)
