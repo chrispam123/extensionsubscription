@@ -96,6 +96,7 @@ resource "aws_lambda_function" "this" {
   environment {
     variables = var.environment_variables
   }
+
 }
 
 # 5. Grupo de Logs (Para que no se queden ahí para siempre)
