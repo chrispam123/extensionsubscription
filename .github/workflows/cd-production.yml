@@ -12,6 +12,11 @@ jobs:
     name: Deploy to AWS
     runs-on: ubuntu-latest
     environment: production
+    env:
+      TF_VAR_env: "prod"
+      TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
+      TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      TF_VAR_google_redirect_uri: ${{ secrets.GOOGLE_REDIRECT_URI }}
 
     steps:
       - name: Checkout code
@@ -44,13 +49,17 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
 
-      - name: Terraform Init
+      - name: Terraform Init (prod backend)
         working-directory: infra
-        run: terraform init
+        run: terraform init -input=false -reconfigure -backend-config=backend-prod.hcl
+
+      - name: Terraform Plan
+        working-directory: infra
+        run: terraform plan -input=false
 
       - name: Terraform Apply
         working-directory: infra
-        run: terraform apply -auto-approve
+        run: terraform apply -input=false -auto-approve
 
       - name: Smoke test (health)
         run: |
