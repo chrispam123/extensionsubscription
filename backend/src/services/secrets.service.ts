@@ -68,7 +68,7 @@ class AwsSecretsService implements SecretsService {
 // basándose en el entorno. El resto del código importa esta función
 // y nunca sabe qué implementación está usando.
 export const createSecretsService = (): SecretsService => {
-  if (process.env.NODE_ENV === 'production') {
+  if (process.env.GOOGLE_SECRET_ARN) {
     return new AwsSecretsService()
   }
   return new LocalSecretsService()
