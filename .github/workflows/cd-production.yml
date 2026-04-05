@@ -3,7 +3,7 @@ name: CD — production
 on:
   push:
     branches:
-      - main # Solo se dispara cuando el código llega a main
+      - main
 
 jobs:
   deploy:
@@ -16,64 +16,57 @@ jobs:
       TF_VAR_google_client_id: ${{ secrets.GOOGLE_CLIENT_ID }}
       TF_VAR_google_client_secret: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       TF_VAR_google_redirect_uri: ${{ secrets.GOOGLE_REDIRECT_URI }}
-      # Necesarias para que el provider de AWS funcione
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: "eu-west-1"
 
-  steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        cache-dependency-path: backend/package-lock.json
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
 
-    # 1. PREPARAR EL ARTEFACTO (BACKEND)
-    - name: Build Backend Lambda
-      working-directory: backend
-      run: |
-        npm ci
-        npm run build
-        npm prune --production
-        # Asumiendo que este script genera la carpeta build_lambda que Terraform espera
-        npm run package:lambda
+      - name: Build Backend Lambda
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+          npm prune --production
+          npm run package:lambda
 
-    # 2. CONFIGURAR TERRAFORM
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
-      with:
-        terraform_version: "1.11.0"
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.0"
 
-    # 3. DESPLIEGUE (EL RITUAL FINAL)
-    - name: Terraform Init (prod backend)
-      working-directory: infra
-      run: terraform init -input=false -reconfigure -backend-config=backend-prod.hcl
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init -input=false -reconfigure -backend-config=backend-prod.hcl
 
-    - name: Terraform Plan
-      working-directory: infra
-      run: terraform plan -input=false
+      - name: Terraform Plan
+        working-directory: infra
+        run: terraform plan -input=false
 
-    - name: Terraform Apply
-      working-directory: infra
-      run: terraform apply -input=false -auto-approve
+      - name: Terraform Apply
+        working-directory: infra
+        run: terraform apply -input=false -auto-approve
 
-    # 4. VERIFICACIÓN (SMOKE TEST)
-    - name: Smoke test (health)
-      run: |
-        set -euo pipefail
-        URL="https://spslatrldf.execute-api.eu-west-1.amazonaws.com/api/v1/auth/callback" 
-        for i in 1 2 3 4 5 6 7 8 9 10; do
-          echo "Health check attempt $i..."
-          # Usamos -I para ver solo cabeceras. Esperamos que responda (aunque sea 400 por falta de params)
-          if curl -s -I "$URL" | grep -q "HTTP/"; then
-            echo "La API responde correctamente."
-            exit 0
-          fi
-          sleep 10
-        done
-        echo "La API no respondió a tiempo: $URL"
-        exit 1
+      - name: Smoke test (health)
+        run: |
+          set -euo pipefail
+          URL="https://spslatrldf.execute-api.eu-west-1.amazonaws.com/api/v1/auth/callback"
+          for i in {1..10}; do
+            echo "Health check attempt $i..."
+            if curl -s -I "$URL" | grep -q "HTTP/"; then
+              echo "API is UP"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "API is DOWN"
+          exit 1
