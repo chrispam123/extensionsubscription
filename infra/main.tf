@@ -64,6 +64,10 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
 module "secrets" {
   source = "./modules/secrets"
   env    = var.env
+
+  google_client_id     = var.google_client_id
+  google_client_secret = var.google_client_secret
+  google_redirect_uri  = var.google_redirect_uri
 }
 
 module "youtube_backend_lambda" {

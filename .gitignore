@@ -2,6 +2,7 @@
 node_modules/
 
 # variables de entorno — NUNCA al repo
+backend/lambda.zip
 .env
 backend/build_lambda/
 # builds
@@ -21,6 +22,7 @@ tfplan.*
 # sistema
 .DS_Store
 *.log
+infra/environments/*.tfvars
 
 **/payload.zip
 infra/modules/lambda/payload.zip
